@@ -59,7 +59,8 @@ structures can.
   </p>
 
   <p>
-    Nothing could be further from the truth.
+    Nothing could be further from the truth.  I think it's the
+    existence of this warning in GCC that makes people think
   </p>
 
   <p>
@@ -74,19 +75,25 @@ structures can.
     Returning structs by value (of any size) does not necessitate use of the stack.
   </p>
 
-<h1>Clang doesn't do it</h1>
+  <h1>Clang doesn't do it</h1>
 
-<p>The Clang compiler does accept the command line option for, but never issues, this warning.</p>
+  <p>The Clang compiler does accept the command line option for, but never issues, this warning.</p>
 
-  <h1>Lets look at the code</h1>
+  <h1></h1>
+
+  <h1>Let's look at the code</h1>
 
   <a href="https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,j:1,lang:___c,selection:(endColumn:27,endLineNumber:18,positionColumn:27,positionLineNumber:18,selectionStartColumn:27,selectionStartLineNumber:18,startColumn:27,startLineNumber:18),source:'typedef+struct+Foo+Foo%3B%0A%0Astruct+Foo+%7B%0A++++long+x%3B%0A++++long+y%3B%0A++++long+z%3B%0A%7D%3B%0A%0Avoid+out_ptr(Foo+*ret,+long+a)%0A%7B%0A++ret-%3Ex+%3D+a%3B%0A++ret-%3Ey+%3D+a%3B%0A++ret-%3Ez+%3D+a%3B%0A%7D%0A%0AFoo+ret_by_value(long+a)%0A%7B%0A++++return+(Foo)+%7B+a,+a,+a+%7D%3B%0A%7D'),l:'5',n:'0',o:'C+source+%231',t:'0')),k:35.316740697076746,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:cg447,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'1',directives:'0',execute:'1',intel:'1',libraryCode:'1',trim:'1'),fontScale:14,j:1,lang:___c,libs:!(),options:'-O2',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'x86-64+gcc+4.4.7+(Editor+%231,+Compiler+%231)+C',t:'0')),k:43.41203235532284,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:output,i:(compiler:1,editor:1,fontScale:14,wrap:'1'),l:'5',n:'0',o:'%231+with+x86-64+gcc+4.4.7',t:'0')),k:21.271226947600404,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',n:'0',o:'',t:'0')),version:4">
   <p>An example for a struct that doesn't fit into registers.</p>
   </a>
+
+  <p>This example shows one additional instruction for the value return case, but it's a register to register move, a very fast instruction that doesn't access memory (or cache) at all.  The slower instructions, those that access memory, are the same.</p>
   
 <a href="https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,j:1,lang:___c,selection:(endColumn:22,endLineNumber:16,positionColumn:22,positionLineNumber:16,selectionStartColumn:22,selectionStartLineNumber:16,startColumn:22,startLineNumber:16),source:'typedef+struct+Foo+Foo%3B%0A%0Astruct+Foo+%7B%0A++++long+x%3B%0A++++long+y%3B%0A%7D%3B%0A%0Avoid+out_ptr(Foo+*ret,+long+a)%0A%7B%0A++ret-%3Ex+%3D+a%3B%0A++ret-%3Ey+%3D+a%3B%0A%7D%0A%0AFoo+ret_by_value(long+a)%0A%7B%0A++++return+(Foo)+%7B+a,+a+%7D%3B%0A%7D'),l:'5',n:'0',o:'C+source+%231',t:'0')),k:35.316740697076746,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:cg447,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'1',directives:'0',execute:'1',intel:'1',libraryCode:'1',trim:'1'),fontScale:14,j:1,lang:___c,libs:!(),options:'-O2',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'x86-64+gcc+4.4.7+(Editor+%231,+Compiler+%231)+C',t:'0')),k:43.41203235532284,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:output,i:(compiler:1,editor:1,fontScale:14,wrap:'1'),l:'5',n:'0',o:'%231+with+x86-64+gcc+4.4.7',t:'0')),k:21.271226947600404,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',n:'0',o:'',t:'0')),version:4">
   <p>This is an example that does fit into registers.</p>
 </a>
+
+<p>This example shows that when the struct fits into registers, no memory access is required at all.</p>
 
   <p><a href="https://validator.w3.org/check?uri=https%3A%2F%2Fdigilicious.com%2FWaggregate-return.html"><img style="width:2cm;height:2cm" src="HTML5_Logo.svg" alt="Valid HTML 5"></a></p>
 
