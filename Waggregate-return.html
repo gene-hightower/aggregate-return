@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>GCC's -Waggregate-return flag</title>
+  <meta charset="UTF-8">
+  <meta name="author" content="Gene Hightower &lt;agg-return@digilicious.com&gt;">
+  <meta name="description" content="Exploring the what and why of GCC's -Waggregate-return flag.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" title="home" href="css/styles.css">
+</head>
+<body>
+  <h1>In olden days of C</h1>
+
+  From "The C Programming Language" by Brian Kernighan and Dennis Ritchie,
+  section 6.2 Structures and Functions:
+
+  <blockquote>
+    <p>
+There are a number of restrictions on C structures. The essential
+rules are that the only operations that you can perform on a structure
+are take its address with &, and access one of its members. This
+implies that structures may not be assigned to or copied as a unit,
+and that they can not be passed to or returned from functions. (These
+restrictions will be removed in forthcoming versions.) Pointers to
+structures do not suffer these limitations, however, so structures and
+functions do work together comfortably. Finally, automatic structures,
+like automatic arrays, cannot be initialized; only external or static
+structures can.
+    </p>
+    <footer>
+      — <cite><a "https://archive.org/details/TheCProgrammingLanguageFirstEdition">The C Programming Language</a></cite>
+    </footer>
+  </blockquote>
+
+  <p>
+    The restrictions on structures were indeed removed in the 1980s
+    and structures as first class objects were in widespread use by
+    the time these features were codified in the original C language
+    standard published in 1989.
+  </p>
+
+  <p>
+    Originally I thought that the aggregate-return warning was to
+    alert on code that would not be portable to older (pre-ANSI)
+    compilers.  But I think I was wrong since the warning is only
+    triggered by returning structs from functions, not any of the
+    other originally restected uses e.g. assignment, passing as
+    arguments, or initialization of automatic objects. Therefore it
+    can't have been much use for this purpose.
+  </p>
+
+<h1>Misinformation on the Internet</h1>
+
+  <p>
+    When researching the purpose of this warning I came accross
+    various Internet posts expressing concerns about returning structs
+    suggesting it was
+    <a href="https://stackoverflow.com/questions/14016993/confusion-in-regards-to-purpose-behavior-of-waggregate-return">"considered poor style to return an aggregate in C; passing an out pointer is preferred..."</a>.
+  </p>
+
+  <p>
+    Nothing could be further from the truth.
+  </p>
+
+  <p>
+    Not only is returning a value from a function much clearer (since
+    that is the only way to express a true "out" parameter in C) it is
+    not inefficient and possibly more effecient (on x86-64) than the
+    "out" (non-const) pointer.  This is because if a return value is
+    small enough it will be returned in machine registers.
+  </p>
+
+  <p>
+    Returning structs by value (of any size) does not necessitate use of the stack.
+  </p>
+
+<h1>Clang doesn't do it</h1>
+
+<p>The Clang compiler does accept the command line option for, but never issues, this warning.</p>
+
+  <h1>Lets look at the code</h1>
+
+  <a href="https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,j:1,lang:___c,selection:(endColumn:27,endLineNumber:18,positionColumn:27,positionLineNumber:18,selectionStartColumn:27,selectionStartLineNumber:18,startColumn:27,startLineNumber:18),source:'typedef+struct+Foo+Foo%3B%0A%0Astruct+Foo+%7B%0A++++long+x%3B%0A++++long+y%3B%0A++++long+z%3B%0A%7D%3B%0A%0Avoid+out_ptr(Foo+*ret,+long+a)%0A%7B%0A++ret-%3Ex+%3D+a%3B%0A++ret-%3Ey+%3D+a%3B%0A++ret-%3Ez+%3D+a%3B%0A%7D%0A%0AFoo+ret_by_value(long+a)%0A%7B%0A++++return+(Foo)+%7B+a,+a,+a+%7D%3B%0A%7D'),l:'5',n:'0',o:'C+source+%231',t:'0')),k:35.316740697076746,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:cg447,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'1',directives:'0',execute:'1',intel:'1',libraryCode:'1',trim:'1'),fontScale:14,j:1,lang:___c,libs:!(),options:'-O2',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'x86-64+gcc+4.4.7+(Editor+%231,+Compiler+%231)+C',t:'0')),k:43.41203235532284,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:output,i:(compiler:1,editor:1,fontScale:14,wrap:'1'),l:'5',n:'0',o:'%231+with+x86-64+gcc+4.4.7',t:'0')),k:21.271226947600404,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',n:'0',o:'',t:'0')),version:4">
+  <p>An example for a struct that doesn't fit into registers.</p>
+  </a>
+  
+<a href="https://godbolt.org/#g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,j:1,lang:___c,selection:(endColumn:22,endLineNumber:16,positionColumn:22,positionLineNumber:16,selectionStartColumn:22,selectionStartLineNumber:16,startColumn:22,startLineNumber:16),source:'typedef+struct+Foo+Foo%3B%0A%0Astruct+Foo+%7B%0A++++long+x%3B%0A++++long+y%3B%0A%7D%3B%0A%0Avoid+out_ptr(Foo+*ret,+long+a)%0A%7B%0A++ret-%3Ex+%3D+a%3B%0A++ret-%3Ey+%3D+a%3B%0A%7D%0A%0AFoo+ret_by_value(long+a)%0A%7B%0A++++return+(Foo)+%7B+a,+a+%7D%3B%0A%7D'),l:'5',n:'0',o:'C+source+%231',t:'0')),k:35.316740697076746,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:cg447,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'1',directives:'0',execute:'1',intel:'1',libraryCode:'1',trim:'1'),fontScale:14,j:1,lang:___c,libs:!(),options:'-O2',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'x86-64+gcc+4.4.7+(Editor+%231,+Compiler+%231)+C',t:'0')),k:43.41203235532284,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:output,i:(compiler:1,editor:1,fontScale:14,wrap:'1'),l:'5',n:'0',o:'%231+with+x86-64+gcc+4.4.7',t:'0')),k:21.271226947600404,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',n:'0',o:'',t:'0')),version:4">
+  <p>This is an example that does fit into registers.</p>
+</a>
+
+  <p><a href="https://validator.w3.org/check?uri=https%3A%2F%2Fdigilicious.com%2FWaggregate-return.html"><img style="width:2cm;height:2cm" src="HTML5_Logo.svg" alt="Valid HTML 5"></a></p>
+
+</body>
+</html>
